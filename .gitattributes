@@ -1,0 +1,70 @@
+###############################################################################
+# Set default behavior to automatically normalize line endings.
+###############################################################################
+* text=auto
+
+###############################################################################
+# Set the merge driver for project and solution files
+#
+# Merging from the command prompt will add diff markers to the files if there
+# are conflicts (Merging from VS is not affected by the settings below, in VS
+# the diff markers are never inserted). Diff markers may cause the following 
+# file extensions to fail to load in VS. An alternative would be to treat
+# these files as binary and thus will always conflict and require user
+# intervention with every merge. To do so, just comment the entries below and
+# uncomment the group further below
+###############################################################################
+
+*.sln        text eol=crlf
+
+# Standard to msysgit
+*.doc	 diff=astextplain
+*.DOC	 diff=astextplain
+*.docx diff=astextplain
+*.DOCX diff=astextplain
+*.dot  diff=astextplain
+*.DOT  diff=astextplain
+*.pdf  diff=astextplain
+*.PDF	 diff=astextplain
+*.rtf	 diff=astextplain
+*.RTF	 diff=astextplain
+
+# Text files that should be normalized to LF in odb.
+*.cs     text eol=lf diff=csharp
+*.xaml   text
+*.config text
+*.c      text
+*.h      text
+*.cpp    text
+*.hpp    text
+
+*.sln     text
+*.csproj  text
+*.vcxproj text
+
+*.md       text
+*.tt       text
+*.sh       text
+*.ps1      text
+*.cmd      text
+*.bat      text
+*.markdown text
+*.msbuild  text
+
+
+# Binary files that should not be normalized or diffed
+*.png    binary
+*.jpg    binary
+*.gif    binary
+*.ico    binary
+*.rc     binary
+
+*.pfx    binary
+*.snk    binary
+*.dll    binary
+*.exe    binary
+*.lib    binary
+*.exp    binary
+*.pdb    binary
+*.sdf    binary
+*.7z     binary
