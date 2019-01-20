@@ -81,8 +81,8 @@ namespace Wyam.Html
 #pragma warning restore RCS1163 // Unused parameter.
 
             // Key = link, Value = source, tag HTML
-            ConcurrentDictionary<string, ConcurrentBag<Tuple<FilePath, string>>> links =
-                new ConcurrentDictionary<string, ConcurrentBag<Tuple<FilePath, string>>>();
+            ConcurrentDictionary<string, ConcurrentBag<(FilePath documentFilePath, string outerHtml)>> links =
+                new ConcurrentDictionary<string, ConcurrentBag<(FilePath documentFilePath, string outerHtml)>>();
 
             // Key = source, Value = tag HTML
             ConcurrentDictionary<FilePath, ConcurrentBag<string>> failures = new ConcurrentDictionary<FilePath, ConcurrentBag<string>>();
@@ -108,7 +108,7 @@ namespace Wyam.Html
                 }
 
                 // Relative
-                if (!uri.IsAbsoluteUri && _validateRelativeLinks && !ValidateRelativeLink(uri, context))
+                if (!uri.IsAbsoluteUri && _validateRelativeLinks && !ValidateRelativeLink(link.Value.Select(x => x.documentFilePath).ToList(), uri, context))
                 {
                     AddOrUpdateFailure(link.Value, failures);
                 }
@@ -136,7 +136,7 @@ namespace Wyam.Html
         }
 
         // Internal for testing
-        internal static void GatherLinks(IDocument input, HtmlParser parser, ConcurrentDictionary<string, ConcurrentBag<Tuple<FilePath, string>>> links)
+        internal static void GatherLinks(IDocument input, HtmlParser parser, ConcurrentDictionary<string, ConcurrentBag<(FilePath documentFilePath, string outerHtml)>> links)
         {
             IHtmlDocument htmlDocument = input.ParseHtml(parser);
             if (htmlDocument != null)
@@ -168,7 +168,7 @@ namespace Wyam.Html
         }
 
         // Internal for testing
-        internal static bool ValidateRelativeLink(Uri uri, IExecutionContext context)
+        internal static bool ValidateRelativeLink(ICollection<FilePath> sourceDocumentFilePaths, Uri uri, IExecutionContext context)
         {
             List<FilePath> checkPaths = new List<FilePath>();
 
@@ -226,12 +226,17 @@ namespace Wyam.Html
                 }
                 return outputFile.Exists;
             });
+
             if (validatedPath != null)
             {
                 Trace.Verbose($"Validated relative link {uri} at {validatedPath.FullPath}");
                 return true;
             }
-            Trace.Warning($"Validation failure for relative link {uri}: could not find output file at any of {string.Join(", ", checkPaths.Select(x => x.FullPath))}");
+
+            foreach (FilePath filePath in sourceDocumentFilePaths)
+            {
+                Trace.Warning($"Validation failure for relative link {uri} on page {filePath}: could not find output file at any of {string.Join(", ", checkPaths.Select(x => x.FullPath))}");
+            }
             return false;
         }
 
@@ -309,7 +314,7 @@ namespace Wyam.Html
             }
         }
 
-        private static void AddOrUpdateLink(string link, IElement element, FilePath source, ConcurrentDictionary<string, ConcurrentBag<Tuple<FilePath, string>>> links)
+        private static void AddOrUpdateLink(string link, IElement element, FilePath source, ConcurrentDictionary<string, ConcurrentBag<(FilePath documentFilePath, string outerHtml)>> links)
         {
             if (string.IsNullOrEmpty(link))
             {
@@ -317,24 +322,24 @@ namespace Wyam.Html
             }
             links.AddOrUpdate(
                 link,
-                _ => new ConcurrentBag<Tuple<FilePath, string>> { Tuple.Create(source, ((IElement)element.Clone(false)).OuterHtml) },
+                _ => new ConcurrentBag<(FilePath documentFilePath, string outerHtml)> { (source, ((IElement)element.Clone(false)).OuterHtml) },
                 (_, list) =>
                 {
-                    list.Add(Tuple.Create(source, ((IElement)element.Clone(false)).OuterHtml));
+                    list.Add((source, ((IElement)element.Clone(false)).OuterHtml));
                     return list;
                 });
         }
 
-        private static void AddOrUpdateFailure(ConcurrentBag<Tuple<FilePath, string>> links, ConcurrentDictionary<FilePath, ConcurrentBag<string>> failures)
+        private static void AddOrUpdateFailure(ConcurrentBag<(FilePath documentFilePath, string outerHtml)> links, ConcurrentDictionary<FilePath, ConcurrentBag<string>> failures)
         {
-            foreach (Tuple<FilePath, string> link in links)
+            foreach (var (documentFilePath, outerHtml) in links)
             {
                 failures.AddOrUpdate(
-                    link.Item1,
-                    _ => new ConcurrentBag<string> { link.Item2 },
+                    documentFilePath,
+                    _ => new ConcurrentBag<string> { outerHtml },
                     (_, list) =>
                     {
-                        list.Add(link.Item2);
+                        list.Add(outerHtml);
                         return list;
                     });
             }
